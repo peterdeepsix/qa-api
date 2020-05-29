@@ -22,6 +22,8 @@ const predict = async () => {
 app.get('/', (req, res) => {
   const answer = predict()
   res.json({
+    text: text,
+    question: question,
     answer: answer.text,
     score: answer.score
   });
