@@ -16,6 +16,8 @@ steps:
     - '--region'
     - 'us-central1'
     - '--platform'
-    - 'managed' 
+    - 'managed'
+    env:
+    - 'PORT=8080'
 images:
 - gcr.io/entroprise-production/qa-api
