@@ -1,7 +1,7 @@
 const express = require('express');
 const { QAClient } = require("question-answering");
 
-const qaClient = await QAClient.fromOptions();
+
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,7 +15,7 @@ const text = `
 const question = "Who won the Super Bowl?";
 
 const predict = async () => {
-    
+    const qaClient = await QAClient.fromOptions();
     const answer = await qaClient.predict(question, text);
     console.log(answer);
     return answer
