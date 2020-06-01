@@ -5,24 +5,24 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.post('/questions', async (req, res) => {
-  const text = req.body.text
-  const question = req.body.question
+  const input = req.body
   const model = await initModel({
     name: "distilbert-base-cased-distilled-squad",
     path: "https://qa-serving-f6hsrmjybq-uc.a.run.app/v1/models/cased",
     runtime: "remote"
   });
+  
   const qaClient = await QAClient.fromOptions({ model });
-  const answer = await qaClient.predict(question, text);
+  const answer = await qaClient.predict(input.question, input.text);
 
-  console.log(text);
-  console.log(question);
+  console.log(input.text);
+  console.log(input.question);
   console.log(answer.text);
   console.log(answer.score);
 
   res.json({
-    text: text,
-    question: question,
+    text: input.text,
+    question: input.question,
     answer: answer.text,
     score: answer.score
   });
