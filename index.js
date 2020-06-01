@@ -25,8 +25,8 @@ app.get('/', async (req, res) => {
   res.json({
     text: text,
     question: question,
-    // answer: answer.text,
-    // score: answer.score
+    answer: answer.text,
+    score: answer.score
   });
 });
 
