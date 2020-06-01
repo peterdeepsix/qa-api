@@ -14,7 +14,11 @@ app.post('/questions', async (req, res) => {
   });
   const qaClient = await QAClient.fromOptions({ model });
   const answer = await qaClient.predict(question, text);
-  console.log(answer);
+
+  console.log(text);
+  console.log(question);
+  console.log(answer.text);
+  console.log(answer.score);
 
   res.json({
     text: text,
