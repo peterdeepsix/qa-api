@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors')
 
 const { initModel, QAClient } = require("question-answering");
 
@@ -7,7 +8,12 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-app.post('/questions', async (req, res) => {
+var corsOptions = {
+  origin: 'https://entroprise.com',
+  optionsSuccessStatus: 200
+}
+
+app.post('/questions', cors(corsOptions), async (req, res) => {
   const input = req.body
   const model = await initModel({
     name: "distilbert-base-cased-distilled-squad",
