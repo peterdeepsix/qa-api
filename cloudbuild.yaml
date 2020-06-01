@@ -18,6 +18,7 @@ steps:
     - '--allow-unauthenticated'
     - '--platform'
     - 'managed'
+    - '--memory=2Gi'
     env:
     - 'PORT=8080'
 images:
