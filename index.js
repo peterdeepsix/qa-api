@@ -16,7 +16,7 @@ app.get('/', async (req, res) => {
   const model = await initModel({
     name: "distilbert-base-cased-distilled-squad",
     path: "https://qa-serving-f6hsrmjybq-uc.a.run.app/v1/models/cased",
-    runtime: RuntimeType.Remote
+    runtime: "remote"
   });
   const qaClient = await QAClient.fromOptions({ model });
   const answer = await qaClient.predict(question, text);
