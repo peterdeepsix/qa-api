@@ -8,9 +8,17 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-var corsOptions = {
-  origin: 'https://entroprise.com',
-  optionsSuccessStatus: 200
+app.options('*', cors())
+
+const whitelist = ['https://entroprise.com', 'http://localhost']
+const corsOptions = {
+  origin: function(origin, callback) {
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  }
 }
 
 app.post('/questions', cors(corsOptions), async (req, res) => {
