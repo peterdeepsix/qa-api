@@ -20,6 +20,6 @@ steps:
     - 'managed'
     - '--memory=2Gi'
     env:
-    - 'PORT=8080'
+    - 'PORT=3000'
 images:
 - gcr.io/entroprise-production/qa-api

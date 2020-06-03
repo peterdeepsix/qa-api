@@ -32,20 +32,20 @@ app.post('/questions', async (req, res) => {
 
   console.log(input.text);
   console.log(input.question);
-  console.log(input.submitted_answer);
+  console.log(input.test_answer);
   console.log(input.known_answer);
   console.log(answer.text);
   console.log(answer.score);
-  console.log(input.input_threshold);
+  console.log(input.confidence_threshold);
 
 
 
   // Universal Sentence Encoder - use
-const input_threshold = input.input_threshold
+const input_threshold = input.confidence_threshold
 
 const sentences = [
   answer.text,
-  input.submitted_answer,
+  input.test_answer,
   input.known_answer
 ];
 
