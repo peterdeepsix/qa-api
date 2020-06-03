@@ -17,4 +17,6 @@ COPY . .
 
 
 # Start the service
-CMD [ "npm", “run”, "start:prod" ]
+# CMD [ "npm", “run”, "start:prod" ]
+
+CMD ["npm", "start"]
