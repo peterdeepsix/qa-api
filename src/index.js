@@ -10,6 +10,7 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 app.options('*', cors())
+
 app.use(cors());
 
 app.use(function(req, res, next) {
@@ -18,6 +19,9 @@ app.use(function(req, res, next) {
   next();
 });
 
+app.get("/", function(req, res) {
+  res.send("Question Answer API");
+})
 
 app.post('/questions', async (req, res) => {
   const input = req.body
