@@ -12,6 +12,8 @@ COPY package*.json ./
 
 RUN npm install
 
+RUN npm build
+
 # Copy the local code to the container
 COPY . .
 
