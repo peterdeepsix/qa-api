@@ -60,158 +60,6 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(spec));
 *       200:
 *         description: Receive back flavor and flavor Id.
 */
-app.post('/questions', async (req, res) => {
-
-  // Init req body
-  const input = req.body
-
-  // Init BERT model
-  const model = await initModel({
-    name: "distilbert-base-cased-distilled-squad",
-    path: "https://qa-serving-f6hsrmjybq-uc.a.run.app/v1/models/cased",
-    runtime: "remote"
-  });
-
-  // Init BERT QA client
-  const qaClient = await QAClient.fromOptions({ model });
-
-  // Return answer from QA client based on req.body
-  const answer = await qaClient.predict(input.question, input.text);
-
-  // Universal Sentence Encoder - use
-  const input_threshold = input.confidence_threshold
-
-  // Init sentences from req.body
-  const sentences = [
-    answer.text,
-    input.test_answer,
-    input.known_answer
-  ];
-
-  // Dot function for a sentance
-  const dot = (a, b) => {
-      var hasOwnProperty = Object.prototype.hasOwnProperty;
-      var sum = 0;
-      for (var key in a) {
-        if (hasOwnProperty.call(a, key) && hasOwnProperty.call(b, key)) {
-          sum += a[key] * b[key]
-        }
-      }
-      return sum
-    }
-
-  // Compare the similarity of sentences
-  const  similarity = (a, b) => {
-    var magnitudeA = Math.sqrt(dot(a, a));
-    var magnitudeB = Math.sqrt(dot(b, b));
-    if (magnitudeA && magnitudeB)
-      return dot(a, b) / (magnitudeA * magnitudeB);
-    else return false
-  }
-
-  // Calculate the cosine similarity matrix from the sentence embeddings
-  const cosine_similarity_matrix = (matrix) => {
-    let cosine_similarity_matrix = [];
-    for(let i=0;i<matrix.length;i++){
-      let row = [];
-      for(let j=0;j<i;j++){
-        row.push(cosine_similarity_matrix[j][i]);
-      }
-      row.push(1);
-      for(let j=(i+1);j<matrix.length;j++){
-        row.push(similarity(matrix[i],matrix[j]));
-      }
-      cosine_similarity_matrix.push(row);
-    }
-    return cosine_similarity_matrix;
-  }
-
-  // Form groups of sentences based on the similarity matrix
-  const form_groups = async (cosine_similarity_matrix) => {
-    let dict_keys_in_group = {};
-    let groups = [];
-
-    for(let i=0; i<cosine_similarity_matrix.length; i++){
-      var this_row = cosine_similarity_matrix[i];
-      for(let j=i; j<this_row.length; j++){
-        if(i!=j){
-          let sim_score = cosine_similarity_matrix[i][j];
-
-          if(sim_score > input_threshold){
-
-            let group_num;
-
-            if(!(i in dict_keys_in_group)){
-              group_num = groups.length;
-              dict_keys_in_group[i] = group_num;
-            }else{
-              group_num = dict_keys_in_group[i];
-            }
-            if(!(j in dict_keys_in_group)){
-              dict_keys_in_group[j] = group_num;
-            }
-
-            if(groups.length <= group_num){
-              groups.push([]);
-            }
-            groups[group_num].push(i);
-            groups[group_num].push(j);
-          }
-        }
-      }
-    }
-
-    let return_groups = [];
-
-    for(var i in groups){
-      return_groups.push(Array.from(new Set(groups[i])));
-    }
-
-    return return_groups;
-  }
-
-  // Group embedded sentences into similar groups
-  const get_similarity = async (embeddings) => {
-
-    let matrix = await cosine_similarity_matrix(embeddings.arraySync());
-
-    let formed_groups = await form_groups(matrix);
-
-    let render_groups = [];
-
-    for(let i in formed_groups){
-      let sub_group = []
-      for(let j in formed_groups[i]){
-        sub_group[j] = sentences[ formed_groups[i][j] ]
-      }
-      render_groups[i] = sub_group
-    }
-    
-    return render_groups
-  }
-
-  // Generate the final api response for /questions
-  const final_response = await use.load().then(async model => {
-    response = await model.embed(sentences).then(async embeddings => {
-      embeddings.print(true /* verbose */);
-
-      let response_groups = await get_similarity(embeddings)
-
-      return response_groups
-    });
-    
-  return response
-  });
-
-  res.json({
-    text: input.text,
-    question: input.question,
-    answer: answer.text,
-    score: answer.score,
-    final_response:final_response
-  });
-});
-
 app.post('/similarity', async (req, res) => {
 
   // Init req body
@@ -265,115 +113,106 @@ app.post('/similarity', async (req, res) => {
   const form_groups = async (cosine_similarity_matrix) => {
     let dict_keys_in_group = {};
     let groups = [];
-    let groupsSimScore = []
+    let groups_edges =[]
 
+    // Based on the input_threshold add similar groups into groups, and add all the similarity comparisons to groups_edges
     for(let i=0; i<cosine_similarity_matrix.length; i++){
       var this_row = cosine_similarity_matrix[i];
       for(let j=i; j<this_row.length; j++){
+        
+        // Make sure we are comparing different sentences and asign the similarity score.
         if(i!=j){
           let sim_score = cosine_similarity_matrix[i][j];
-
+          
+          // Check to see if the similarity score is greater than the input_threshold.
           if(sim_score > input_threshold){
-
             let group_num;
+            let group_object ={
+              i: i,
+              j: j,
+              sim_score: sim_score
+            };
 
+            // Check to see if the sentence comparison exists in the dictionary of group keys.
+            // Then set the group_num to the length of the current groups and assign it to the group_num.
+            // Otherwise assign the group_num to the current dictionary entry of group keys.
             if(!(i in dict_keys_in_group)){
               group_num = groups.length;
               dict_keys_in_group[i] = group_num;
             }else{
               group_num = dict_keys_in_group[i];
             }
+
+            // Check to see if the the second level sentence comparison exists and assign it to the dictionary of group keys.
             if(!(j in dict_keys_in_group)){
               dict_keys_in_group[j] = group_num;
             }
 
+            // Check to see if the groups is empty, and inititalizes.
             if(groups.length <= group_num){
               groups.push([]);
-              groupsSimScore.push([]);
+              groups_edges.push([]);
             }
+            
+            // Addeds the sentence to the groups.
             groups[group_num].push(i);
-            groups[group_num].push(j);
-            groupsSimScore[group_num].push({
-              i: i,
-              j: j,
-              sim_score: sim_score,
-            });
 
-            console.log("i is similar to j", i, j)
-            console.log("sim_score", sim_score)
+            // Adds the second level sentence to the groups.
+            groups[group_num].push(j);
+
+            // Adds the the compariosn edge to the groups_edges.
+            groups_edges[group_num].push(group_object);
+
+            console.log("group_object", group_object)
             console.log("groups", groups)
-            console.log("groupsSimScore", groupsSimScore)
+            console.log("groups_edges", groups_edges)
             
           }
         }
       }
     }
 
-    let return_groups = [];
+    let groups_set = [];
 
+    // Use "new Set to make sure a sentence exists only once in the groups array"
     for(var i in groups){
-      return_groups.push(Array.from(new Set(groups[i])));
+      groups_set.push(Array.from(new Set(groups[i])));
     }
-
-    let return_object = {
-      groups: return_groups,
-      groups_edge_score: groupsSimScore,
-    }
-
-    return return_object;
+    
+    // Return both the set of unique groups and the array of groups similarity edges.
+    return [groups_set, groups_edges];
   }
 
   // Group embedded sentences into similar groups
   const get_similarity = async (embeddings) => {
 
+    // Process the senteces similarity.
     let matrix = await cosine_similarity_matrix(embeddings.arraySync());
 
-    let return_object = await form_groups(matrix);
+    // Massage the sentences similarity matrix into unique groups and groups_edges.
+    const [groups_set, groups_edges] = await form_groups(matrix);
 
-    let formed_groups = return_object.groups
-
-    let formed_groups_sim_score = return_object.groups_edge_score
-
-    let render_groups = [];
-
-    let render_groups_sim_score = [];
-    
-
-    for(let i in formed_groups){
-      let sub_group = []
-      for(let j in formed_groups[i]){
-        sub_group[j] = sentences[ formed_groups[i][j] ]
-      }
-      render_groups[i] = sub_group
-      render_groups_sim_score[i] = {
-        group: sub_group,
-        // groups_edge_score: formed_groups_sim_score,
-      }
-    }
-    
-    for(let i in formed_groups){
-      let sub_group = []
-      for(let j in formed_groups[i]){
-        sub_group[j] = sentences[ formed_groups[i][j] ]
-      }
-      render_groups[i] = sub_group
-      render_groups_sim_score[i] = {
-        ...render_groups_sim_score[i],
-        groups_edge_score: formed_groups_sim_score[i],
-      }
-    }
-
-    return render_groups_sim_score
+    return [groups_set, groups_edges]
   }
 
-  // Generate the final api response for /questions
+  // Generate the response for /similarity
   const similar_groups = await use.load().then(async model => {
     response = await model.embed(sentences).then(async embeddings => {
       embeddings.print(true /* verbose */);
 
-      let response_object = await get_similarity(embeddings)
+      const [groups_set, groups_edges]= await get_similarity(embeddings)
 
-      return response_object
+      let sentences_set = [];
+    
+      for(let i in groups_set){
+        let sub_group = []
+        for(let j in groups_set[i]){
+          sub_group[j] = sentences[ groups_set[i][j] ]
+        }
+        sentences_set[i] = sub_group
+      }
+
+      return [sentences_set, groups_edges]
     });
     
   return response
