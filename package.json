@@ -8,7 +8,7 @@
     "build": "webpack",
     "inspect": "kill-port --port 3000 && node --inspect=0.0.0.0:3000 src/index.js",
     "start": "nodemon --delay 80ms --watch src/ src/index.js 'npm run inspect'",
-    "start:prod": "node dist/qa-api.bundle.js",
+    "start:prod": "node src/index.js",
     "lint": "eslint --fix . && echo 'Lint complete.'"
   },
   "repository": {
