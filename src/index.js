@@ -196,14 +196,17 @@ app.post('/similarity', async (req, res) => {
   }
 
   // Generate the response for /similarity
-  const similar_groups = await use.load().then(async model => {
+  const similar_sentences = await use.load().then(async model => {
     response = await model.embed(sentences).then(async embeddings => {
       embeddings.print(true /* verbose */);
 
+      // Get the similarity of sentences.
       const [groups_set, groups_edges]= await get_similarity(embeddings)
 
       let sentences_set = [];
+      let sentences_edges = []
     
+      // Transform groups into sentences
       for(let i in groups_set){
         let sub_group = []
         for(let j in groups_set[i]){
@@ -211,15 +214,31 @@ app.post('/similarity', async (req, res) => {
         }
         sentences_set[i] = sub_group
       }
+     
+      // Transform groups into sentences
+      for(let i in groups_edges){
+        let sub_edges = []
+        for(let j in groups_edges[i]){
+          let sentence_edge = {
+            first_sentence: sentences[ groups_edges[i][j].i ],
+            second_sentence: sentences[ groups_edges[i][j].j ],
+            similarity_score: groups_edges[i][j].sim_score
+          }
+          console.log("Transform groups into sentences")
+          console.log(sentence_edge)
+          sub_edges[j] = sentence_edge
+        }
+        sentences_edges[i] = sub_edges
+      }
 
-      return [sentences_set, groups_edges]
+      return [sentences_set, sentences_edges]
     });
     
   return response
   });
 
   res.json({
-    similar_groups: similar_groups
+    similar_sentences: similar_sentences
   });
 });
 
