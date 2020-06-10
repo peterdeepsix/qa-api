@@ -390,9 +390,7 @@ app.post('/similarity', async (req, res) => {
   return response
   });
 
-  res.json({
-    similar_sentences: similar_sentences
-  });
+  res.json(similar_sentences);
 });
 
 // Embed Questions
